@@ -33,3 +33,43 @@ function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) 
   
     return obj
 }
+
+// Populates process.env from .env file
+function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
+    let dotenvPath = path.resolve(process.cwd(), '.env')
+    let encoding /*: string */ = 'utf8'
+    let debug = false
+  
+    if (options) {
+      if (options.path != null) {
+        dotenvPath = options.path
+      }
+      if (options.encoding != null) {
+        encoding = options.encoding
+      }
+      if (options.debug != null) {
+        debug = true
+      }
+    }
+  
+    try {
+      // specifying an encoding returns a string instead of a buffer
+      const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
+  
+      Object.keys(parsed).forEach(function (key) {
+        if (!process.env.hasOwnProperty(key)) {
+          process.env[key] = parsed[key]
+        } else if (debug) {
+          log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
+        }
+      })
+  
+      return { parsed }
+    } catch (e) {
+      return { error: e }
+    }
+  }
+  
+  module.exports.config = config
+  module.exports.load = config
+  module.exports.parse = parse
